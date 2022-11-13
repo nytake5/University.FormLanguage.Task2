@@ -89,7 +89,7 @@ namespace University.FormLanguage.Task2
 
             int indexOfStartElse = EntryList.Count - 1;
             List<PostfixEntry> resultEntryList = EntryList;
-
+            bool flag = false;
             if (enumerator.Current.Type != LexemeType.End)
             {
                 if (enumerator.Current.Type != LexemeType.Else)
@@ -99,7 +99,7 @@ namespace University.FormLanguage.Task2
                 }
                 else
                 {
-
+                    flag = true;
                     Console.WriteLine("else");
                     chain = new StringBuilder("\t");
                     enumerator.MoveNext();
@@ -118,7 +118,7 @@ namespace University.FormLanguage.Task2
                         EntryType = EntryType.Cmd,
                         Cmd = Cmd.JZ
                     });
-                    foreach (var item in EntryList.Skip(indexOfStartElse))
+                    foreach (var item in EntryList.Skip(indexOfStartElse + 1))
                     {
                         resultEntryList.Add(item);
                     }
@@ -128,11 +128,17 @@ namespace University.FormLanguage.Task2
                         resultEntryList.Add(item);
                     }
                     resultEntryList[tempIndex].CmdPtr = resultEntryList.LastIndexOf(resultEntryList.FirstOrDefault(x => x.Cmd == Cmd.JMP)) + 1;
-                    //resultEntryList[indexJmpPtr].CmdPtr = EntryList.Count;
                 }
             }
             int indexJmpPtr = resultEntryList.LastIndexOf(resultEntryList.FirstOrDefault(x => x.Cmd == Cmd.JMP)) - 1;
-            resultEntryList[indexJmpPtr].CmdPtr = indexJmpPtr + 2;
+            if (flag)
+            {
+                resultEntryList[indexJmpPtr].CmdPtr = resultEntryList.Count;
+            }
+            else
+            {
+                resultEntryList[indexJmpPtr].CmdPtr = indexJmpPtr + 2;
+            }
             Console.WriteLine(enumerator.Current.Value);
 
             answersEntries = resultEntryList;
@@ -347,28 +353,28 @@ namespace University.FormLanguage.Task2
                             break;
                         case Cmd.JZ:
                             temp = PopVal();
-                            if (PopVal() != 0) pos++; else pos = temp;
+                            if (PopVal() == 0) pos++; else pos = temp;
                             break;
                         case Cmd.SET:
                             SetVarAndPop(PopVal());
                             pos++;
                             break;
                         case Cmd.ADD:
-                            SetVarAndPop(PopVal() + PopVal());
+                            PushVal(PopVal() + PopVal());
                             pos++;
                             break;
                         case Cmd.SUB:
                             var temp1 = -PopVal();
                             var temp2 = PopVal();
-                            SetVarAndPop(temp1 + temp2);
-                            pos += 2;
+                            PushVal(temp1 + temp2);
+                            pos++;
                             break;
                         case Cmd.MUL:
-                            SetVarAndPop(PopVal() * PopVal());
+                            PushVal(PopVal() * PopVal());
                             pos++;
                             break;
                         case Cmd.DIV:
-                            SetVarAndPop((int)(1.0 / PopVal() * PopVal()));
+                            PushVal((int)(1.0 / PopVal() * PopVal()));
                             pos++;
                             break;
                         case Cmd.AND:
@@ -403,10 +409,6 @@ namespace University.FormLanguage.Task2
                             PushVal((PopVal() <= PopVal()) ? 1 : 0);
                             pos++;
                             break;
-                        case Cmd.PRINT:
-                            Console.WriteLine(PopVal());
-                            pos++;
-                            break;
                         default:
                             break;
                     }
@@ -415,6 +417,10 @@ namespace University.FormLanguage.Task2
 
                 if (pos < EntryList.Count)
                     Console.WriteLine($"Position: {pos}, Value: {GetEntryString(EntryList[pos])}, Stack: {GetStackState()}, Variable value: {GetVarValues()}");
+                else
+                {
+                    Console.WriteLine($"Variable value: {GetVarValues()}");
+                }
             }
         }
 
@@ -464,11 +470,6 @@ namespace University.FormLanguage.Task2
                 throw new ArgumentException("EntryType");
             }
             SetValuesToVariables(variable.Value, val);
-            _stack.Push(new PostfixEntry()
-            {
-                EntryType = EntryType.Var,
-                CurrentValue = variable.CurrentValue
-            });
         }
 
         private string GetEntryString(PostfixEntry entry)
